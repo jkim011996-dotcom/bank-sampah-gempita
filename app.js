@@ -36,6 +36,7 @@
     $('userInfo').textContent=sessionUser.email||'';
     $('roleBadge').textContent=({admin:'Admin',bendahara:'Bendahara',petugas:'Petugas'})[profile.peran]||profile.peran;
     document.querySelector('[data-tab="kas"]').classList.toggle('hidden',!canFinance());
+    document.querySelector('[data-tab="tabungan"]').classList.toggle('hidden',!canFinance());
     document.querySelector('[data-tab="laporan"]').classList.toggle('hidden',!canFinance());
     if(!canManagePrices()) $('tab-harga').querySelectorAll('form, .muted').forEach(el=>el.classList.add('hidden'));
   }
