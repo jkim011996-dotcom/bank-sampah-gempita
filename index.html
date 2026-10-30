@@ -41,6 +41,7 @@
         <button data-tab="anggota">Anggota</button>
         <button data-tab="harga">Harga sampah</button>
         <button data-tab="timbang">Penimbangan</button>
+        <button data-tab="tabungan">Tabungan</button>
         <button data-tab="kas">Kas</button>
         <button data-tab="laporan">Laporan</button>
       </nav>
@@ -69,6 +70,24 @@
         </div>
         <div class="card"><h2>Daftar anggota</h2><div class="tablewrap"><table><thead><tr><th>Kode</th><th>Nama</th><th>Alamat</th><th>Saldo</th></tr></thead><tbody id="membersBody"></tbody></table></div></div>
       </section>
+            <section id="tab-tabungan" class="tabpage hidden">
+        <div class="card">
+          <h2>Saldo Tabungan Anggota</h2>
+          <div class="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Kode</th>
+                  <th>Nama</th>
+                  <th>Saldo</th>
+                </tr>
+              </thead>
+              <tbody id="savingsBody"></tbody>
+            </table>
+          </div>
+          <p id="savingsMessage" class="message"></p>
+        </div>
+            </section>
 
       <section id="tab-harga" class="tabpage hidden">
         <div class="card">
