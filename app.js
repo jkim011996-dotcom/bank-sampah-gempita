@@ -154,15 +154,45 @@
     const row={anggota_id:memberId,jenis_sampah_id:wasteId,berat_kg:weight,harga_per_kg:Number(waste.harga_per_kg),petugas_id:sessionUser.id};
     const {error}=await sb.from('penimbangan').insert(row);
     if(error){msg('weighMessage',error.message,true);return;}
-    e.target.reset();$('weighEstimate').value='';msg('weighMessage','Penimbangan tersimpan; saldo anggota ditambahkan otomatis oleh database.');await loadMembers();await loadWeighings();await loadDashboard();
+    e.target.reset();$('weighEstimate').value='';msg('weighMessage','Penimbangan tersimpan; saldo anggota ditambahkan otomatis oleh database.');await loadMembers();await loadWeighings();await loadDashboard();    
   });
   async function loadWeighings(){
     const {data,error}=await sb.from('penimbangan').select('id,anggota_id,jenis_sampah_id,berat_kg,total,tanggal').order('tanggal',{ascending:false}).limit(50);
     if(error){msg('weighMessage',error.message,true);return;}
     weighings=data||[];
-    $('weighingsBody').innerHTML=weighings.map(r=>`<tr><td>${dateFmt(r.tanggal)}</td><td>${esc(members.find(m=>m.id===r.anggota_id)?.nama||'—')}</td><td>${esc(wastes.find(w=>w.id===r.jenis_sampah_id)?.nama||'—')}</td><td>${Number(r.berat_kg).toLocaleString('id-ID')} kg</td><td>${money(r.total)}</td></tr>`).join('');
+   $('weighingsBody').innerHTML=weighings.map(r=>`<tr>
+<td>${dateFmt(r.tanggal)}</td>
+<td>${esc(members.find(m=>m.id===r.anggota_id)?.nama||'—')}</td>
+<td>${esc(wastes.find(w=>w.id===r.jenis_sampah_id)?.nama||'—')}</td>
+<td>${Number(r.berat_kg).toLocaleString('id-ID')} kg</td>
+<td>${money(r.total)}</td>
+<td>${role()==='admin'?`<button class="btn-danger" onclick="hapusPenimbangan('${r.id}')">Hapus</button>`:'-'}</td>
+</tr>`).join('');
     $('statTimbang').textContent=weighings.length;
+    
+    await loadDashboard();
   }
+  window.hapusPenimbangan = async function(id){
+    if(role() !== 'admin'){
+      alert('Hanya Admin yang boleh menghapus.');
+      return;
+    }
+
+    if(!confirm('Yakin ingin menghapus penimbangan ini? Saldo anggota juga akan dikurangi.')){
+      return;
+    }
+
+    const {error} = await sb.rpc('hapus_penimbangan',{p_id:id});
+
+    if(error){
+      alert('Gagal menghapus: '+error.message);
+      return;
+    }
+
+    alert('Penimbangan berhasil dihapus dan saldo sudah dikoreksi.');
+    await loadMembers();
+    await loadWeighings();
+  };
 
   $('cashForm').addEventListener('submit',async e=>{
     e.preventDefault();
