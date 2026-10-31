@@ -23,6 +23,13 @@
     if(name==='harga') loadWastes();
     if(name==='timbang'){ loadMembers(); loadWastes(); loadWeighings(); }
     if(name==='tabungan') loadSavings();
+    if(name==='sampah-anggota'){
+  (async()=>{
+    await loadMembers();
+    await loadWastes();
+    await loadMemberWaste();
+  })();
+}
     if(name==='kas') loadCash();
     if(name==='laporan') loadReports();
   }
@@ -36,7 +43,6 @@
     $('userInfo').textContent=sessionUser.email||'';
     $('roleBadge').textContent=({admin:'Admin',bendahara:'Bendahara',petugas:'Petugas'})[profile.peran]||profile.peran;
     document.querySelector('[data-tab="kas"]').classList.toggle('hidden',!canFinance());
-    document.querySelector('[data-tab="tabungan"]').classList.toggle('hidden',!canFinance());
     document.querySelector('[data-tab="laporan"]').classList.toggle('hidden',!canFinance());
     if(!canManagePrices()) $('tab-harga').querySelectorAll('form, .muted').forEach(el=>el.classList.add('hidden'));
   }
@@ -104,6 +110,39 @@
 
     msg('savingsMessage', 'Data saldo berhasil dimuat.');
   }
+  async function loadMemberWaste(){
+  const body = $('memberWasteBody');
+  body.innerHTML = '<tr><td colspan="5">Memuat data...</td></tr>';
+
+  const {data, error} = await sb
+    .from('penimbangan')
+    .select('anggota_id,jenis_sampah_id,berat_kg,total,tanggal')
+    .order('tanggal', {ascending:false});
+
+  if(error){
+    body.innerHTML = '';
+    msg('memberWasteMessage', error.message, true);
+    return;
+  }
+
+  const rows = data || [];
+
+  body.innerHTML = rows.map(r => `
+    <tr>
+      <td>${esc(members.find(m=>m.id===r.anggota_id)?.nama||'—')}</td>
+      <td>${esc(wastes.find(w=>w.id===r.jenis_sampah_id)?.nama||'—')}</td>
+      <td>${Number(r.berat_kg).toLocaleString('id-ID')} kg</td>
+      <td>${money(r.total)}</td>
+      <td>${dateFmt(r.tanggal)}</td>
+    </tr>
+  `).join('');
+
+  if(rows.length === 0){
+    body.innerHTML = '<tr><td colspan="5">Belum ada data penimbangan.</td></tr>';
+  }
+
+  msg('memberWasteMessage', 'Data sampah berhasil dimuat.');
+}
   $('memberForm').addEventListener('submit',async e=>{
     e.preventDefault();
     const row={kode_anggota:$('memberCode').value.trim(),nama:$('memberName').value.trim(),alamat:$('memberAddress').value.trim()||null,no_hp:$('memberPhone').value.trim()||null};
