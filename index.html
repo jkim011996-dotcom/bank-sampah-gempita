@@ -42,20 +42,47 @@
         <button data-tab="harga">Harga sampah</button>
         <button data-tab="timbang">Penimbangan</button>
         <button data-tab="tabungan">Tabungan</button>
+        <button data-tab="sampah-anggota">Sampah per Anggota</button>
         <button data-tab="kas">Kas</button>
         <button data-tab="laporan">Laporan</button>
       </nav>
 
-      <section id="tab-dashboard" class="tabpage">
-        <div class="stats">
-          <article class="stat"><span>Jumlah anggota</span><strong id="statAnggota">—</strong></article>
-          <article class="stat"><span>Penimbangan</span><strong id="statTimbang">—</strong></article>
-          <article class="stat"><span>Total tabungan</span><strong id="statSaldo">—</strong></article>
-          <article class="stat"><span>Kas masuk</span><strong id="statKasMasuk">—</strong></article>
-        </div>
-        <div class="card"><h2>Catatan penting</h2><p>Gunakan hanya setelah kebijakan keamanan database diuji. Harga awal Rp0 wajib diubah sebelum melakukan penimbangan. Saldo otomatis dicatat oleh trigger database.</p></div>
-      </section>
+     <section id="tab-dashboard" class="tabpage">
+  <div class="card">
+   <div class="brand-logo">
+  <img src="logo_bank_sampah_gempita_transparan.png" alt="Logo Bank Sampah GEMPITA">
+  <h2>BANK SAMPAH GEMPITA</h2>
+</div>
+    <p class="muted">Gerakan Mandiri Peduli Lingkungan dan Tabungan</p>
+    <h3>Dashboard Pengelolaan</h3>
+    <p>Selamat datang di aplikasi Kas Bank Sampah GEMPITA.</p>
+  </div>
 
+  <div class="stats">
+    <article class="stat">
+      <span>Jumlah Anggota</span>
+      <strong id="statAnggota">—</strong>
+    </article>
+    <article class="stat">
+      <span>Penimbangan</span>
+      <strong id="statTimbang">—</strong>
+    </article>
+    <article class="stat">
+      <span>Total Tabungan</span>
+      <strong id="statSaldo">—</strong>
+    </article>
+    <article class="stat">
+      <span>Kas Masuk</span>
+      <strong id="statKasMasuk">—</strong>
+    </article>
+  </div>
+
+  <div class="card">
+    <h2>🌱 Informasi GEMPITA</h2>
+    <p>Kelola anggota, pencatatan penimbangan, tabungan, dan kas Bank Sampah GEMPITA dalam satu aplikasi.</p>
+  </div>
+</section>
+    
       <section id="tab-anggota" class="tabpage hidden">
         <div class="card">
           <h2>Tambah anggota</h2>
@@ -70,24 +97,6 @@
         </div>
         <div class="card"><h2>Daftar anggota</h2><div class="tablewrap"><table><thead><tr><th>Kode</th><th>Nama</th><th>Alamat</th><th>Saldo</th></tr></thead><tbody id="membersBody"></tbody></table></div></div>
       </section>
-            <section id="tab-tabungan" class="tabpage hidden">
-        <div class="card">
-          <h2>Saldo Tabungan Anggota</h2>
-          <div class="tablewrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Kode</th>
-                  <th>Nama</th>
-                  <th>Saldo</th>
-                </tr>
-              </thead>
-              <tbody id="savingsBody"></tbody>
-            </table>
-          </div>
-          <p id="savingsMessage" class="message"></p>
-        </div>
-            </section>
 
       <section id="tab-harga" class="tabpage hidden">
         <div class="card">
@@ -114,9 +123,49 @@
           </form>
           <p id="weighMessage" class="message"></p>
         </div>
-        <div class="card"><h2>Penimbangan terbaru</h2><div class="tablewrap"><table><thead><tr><th>Tanggal</th><th>Anggota</th><th>Jenis</th><th>Berat</th><th>Nilai</th><th>Aksi</th></tr></thead><tbody id="weighingsBody"></tbody></table></div></div>
+        <div class="card"><h2>Penimbangan terbaru</h2><div class="tablewrap"><table><thead><tr><th>Tanggal</th><th>Anggota</th><th>Jenis</th><th>Berat</th><th>Nilai</th></tr></thead><tbody id="weighingsBody"></tbody></table></div></div>
       </section>
-
+<section id="tab-tabungan" class="tabpage hidden">
+  <div class="card">
+    <h2>Tabungan Anggota</h2>
+    <p class="muted">Saldo terkini setiap anggota.</p>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Kode</th>
+            <th>Nama Anggota</th>
+            <th>Saldo Tabungan</th>
+          </tr>
+        </thead>
+        <tbody id="savingsBody"></tbody>
+      </table>
+    </div>
+    <p id="savingsMessage" class="message"></p>
+  </div>
+</section>
+ 
+      <section id="tab-sampah-anggota" class="tabpage hidden">
+  <div class="card">
+    <h2>Data Sampah per Anggota</h2>
+    <p class="muted">Riwayat jenis dan berat sampah setiap anggota.</p>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nama Anggota</th>
+            <th>Jenis Sampah</th>
+            <th>Berat (Kg)</th>
+            <th>Total</th>
+            <th>Tanggal</th>
+          </tr>
+        </thead>
+        <tbody id="memberWasteBody"></tbody>
+      </table>
+    </div>
+    <p id="memberWasteMessage" class="message"></p>
+  </div>
+</section>
       <section id="tab-kas" class="tabpage hidden">
         <div class="card">
           <h2>Catat transaksi kas</h2>
@@ -130,8 +179,8 @@
           <p id="cashMessage" class="message"></p>
         </div>
         <div class="card"><h2>Transaksi kas terbaru</h2><div class="tablewrap"><table><thead><tr><th>Tanggal</th><th>Jenis</th><th>Kategori</th><th>Jumlah</th><th>Keterangan</th></tr></thead><tbody id="cashBody"></tbody></table></div></div>
-      </section>
-
+        </section>
+    
       <section id="tab-laporan" class="tabpage hidden">
         <div class="card"><h2>Ringkasan laporan</h2><div id="reportSummary"></div><button id="exportBtn" type="button">Unduh CSV anggota</button></div>
       </section>
