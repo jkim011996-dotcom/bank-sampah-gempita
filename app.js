@@ -75,10 +75,107 @@
     const {data,error}=await sb.from('anggota').select('id,kode_anggota,nama,alamat,no_hp,saldo').order('nama');
     if(error){msg('memberMessage',error.message,true);return;}
     members=data||[];
-    $('membersBody').innerHTML=members.map(m=>`<tr><td>${esc(m.kode_anggota)}</td><td>${esc(m.nama)}</td><td>${esc(m.alamat||'')}</td><td>${money(m.saldo)}</td></tr>`).join('');
+   $('membersBody').innerHTML=members.map(m=>`<tr>
+<td>${esc(m.kode_anggota)}</td>
+<td>${esc(m.nama)}</td>
+<td>${esc(m.alamat||'')}</td>
+<td>${money(m.saldo)}</td>
+<td>${role()==='admin' ? `<button onclick="editMember('${m.id}')">Edit</button> <button onclick="hapusAnggota('${m.id}')">Hapus</button>` : '—'}</td>
+</tr>`).join('');
     $('weighMember').innerHTML='<option value="">Pilih anggota</option>'+members.map(m=>`<option value="${m.id}">${esc(m.kode_anggota)} — ${esc(m.nama)}</option>`).join('');
     $('statAnggota').textContent=members.length;
   }
+  window.editMember = async function(id){
+  if(role() !== 'admin'){
+    alert('Hanya Admin yang boleh mengedit anggota.');
+    return;
+  }
+
+  const m = members.find(x => String(x.id) === String(id));
+  if(!m) return;
+
+  const kode = prompt('Kode Anggota:', m.kode_anggota);
+  if(kode === null) return;
+
+  const nama = prompt('Nama Anggota:', m.nama);
+  if(nama === null) return;
+
+  const alamat = prompt('Alamat:', m.alamat || '');
+  if(alamat === null) return;
+
+  const no_hp = prompt('Nomor HP:', m.no_hp || '');
+  if(no_hp === null) return;
+
+  if(!kode.trim() || !nama.trim()){
+    alert('Kode dan nama anggota wajib diisi.');
+    return;
+  }
+
+  const {error} = await sb.from('anggota')
+    .update({
+      kode_anggota: kode.trim(),
+      nama: nama.trim(),
+      alamat: alamat.trim(),
+      no_hp: no_hp.trim()
+    })
+    .eq('id', id);
+
+  if(error){
+    alert('Gagal mengedit anggota: ' + error.message);
+    return;
+  }
+
+  alert('Data anggota berhasil diperbarui.');
+  await loadMembers();
+};
+
+window.hapusAnggota = async function(id){
+  if(role() !== 'admin'){
+    alert('Hanya Admin yang boleh menghapus anggota.');
+    return;
+  }
+
+  const m = members.find(x => String(x.id) === String(id));
+  if(!m) return;
+
+  if(Number(m.saldo) > 0){
+    alert('Anggota masih memiliki saldo. Tidak bisa dihapus.');
+    return;
+  }
+
+  const {count, error:cekError} = await sb
+    .from('penimbangan')
+    .select('id', {count:'exact', head:true})
+    .eq('anggota_id', id);
+
+  if(cekError){
+    alert('Gagal memeriksa riwayat: ' + cekError.message);
+    return;
+  }
+
+  if(count > 0){
+    alert('Anggota memiliki riwayat penimbangan. Tidak bisa dihapus.');
+    return;
+  }
+
+  if(!confirm('Yakin ingin menghapus anggota ' + m.nama + '?')){
+    return;
+  }
+
+  const {error} = await sb
+    .from('anggota')
+    .delete()
+    .eq('id', id);
+
+  if(error){
+    alert('Gagal menghapus anggota: ' + error.message);
+    return;
+  }
+
+  alert('Anggota berhasil dihapus.');
+  await loadMembers();
+  await loadDashboard();
+};
     async function loadSavings(){
     const body = $('savingsBody');
     body.innerHTML = '<tr><td colspan="3">Memuat data...</td></tr>';
