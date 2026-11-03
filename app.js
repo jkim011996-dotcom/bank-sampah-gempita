@@ -71,20 +71,46 @@
   $('logoutBtn').addEventListener('click',async()=>{await sb.auth.signOut();sessionUser=null;profile=null;show('appPanel',false);show('loginPanel',true);show('logoutBtn',false);});
   document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
 
-  async function loadMembers(){
-    const {data,error}=await sb.from('anggota').select('id,kode_anggota,nama,alamat,no_hp,saldo').order('nama');
-    if(error){msg('memberMessage',error.message,true);return;}
-    members=data||[];
-   $('membersBody').innerHTML=members.map(m=>`<tr>
+ function renderWeighMembers(keyword=''){
+  const cari = keyword.toLowerCase().trim();
+
+  const hasil = members.filter(m =>
+    (m.nama || '').toLowerCase().includes(cari)
+  );
+
+  $('weighMember').innerHTML =
+    '<option value="">Pilih anggota</option>' +
+    hasil.map(m =>
+      `<option value="${m.id}">${esc(m.nama)}</option>`
+    ).join('');
+}
+
+$('searchWeighMember').addEventListener('input', 
+function(){
+  renderWeighMembers(this.value);
+});
+async function loadMembers(){
+  const {data,error}=await sb.from('anggota').select('id,kode_anggota,nama,alamat,no_hp,saldo').order('nama');
+
+  if(error){
+    msg('memberMessage',error.message,true);
+    return;
+  }
+
+  members=data||[];
+
+  $('membersBody').innerHTML=members.map(m=>`<tr>
 <td>${esc(m.kode_anggota)}</td>
 <td>${esc(m.nama)}</td>
 <td>${esc(m.alamat||'')}</td>
 <td>${money(m.saldo)}</td>
 <td>${role()==='admin' ? `<button onclick="editMember('${m.id}')">Edit</button> <button onclick="hapusAnggota('${m.id}')">Hapus</button>` : '—'}</td>
 </tr>`).join('');
-    $('weighMember').innerHTML='<option value="">Pilih anggota</option>'+members.map(m=>`<option value="${m.id}">${esc(m.kode_anggota)} — ${esc(m.nama)}</option>`).join('');
-    $('statAnggota').textContent=members.length;
-  }
+
+  renderWeighMembers();
+
+  $('statAnggota').textContent=members.length;
+}
   window.editMember = async function(id){
   if(role() !== 'admin'){
     alert('Hanya Admin yang boleh mengedit anggota.');
