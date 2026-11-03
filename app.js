@@ -207,6 +207,147 @@ window.hapusAnggota = async function(id){
 
     msg('savingsMessage', 'Data saldo berhasil dimuat.');
   }
+  // REKAP TABUNGAN BULANAN GEMPITA
+let rekapTabunganData = [];
+
+async function loadMonthlySavings(){
+  const body = $('rekapTabunganBody');
+  const ringkasan = $('rekapRingkasan');
+
+  body.innerHTML = '<tr><td colspan="5">Memuat data...</td></tr>';
+  ringkasan.innerHTML = '';
+
+  const bulan = Number($('rekapBulan').value);
+  const tahun = Number($('rekapTahun').value);
+
+  if(!bulan || !tahun){
+    msg('rekapTabunganMessage','Pilih bulan dan tahun.',true);
+    return;
+  }
+
+  const awal = new Date(tahun, bulan - 1, 1);
+  const akhir = new Date(tahun, bulan, 1);
+
+  const {data: timbang, error: errTimbang} = await sb
+    .from('penimbangan')
+    .select('id,anggota_id,berat_kg,tanggal')
+    .gte('tanggal',awal.toISOString())
+    .lt('tanggal',akhir.toISOString());
+
+  if(errTimbang){
+    body.innerHTML = '';
+    msg('rekapTabunganMessage',errTimbang.message,true);
+    return;
+  }
+
+  const penimbangan = timbang || [];
+
+  if(penimbangan.length === 0){
+    body.innerHTML = '<tr><td colspan="5">Belum ada penimbangan.</td></tr>';
+    msg('rekapTabunganMessage','Tidak ada transaksi pada periode ini.');
+    rekapTabunganData = [];
+    return;
+  }
+
+  const ids = penimbangan.map(p=>p.id);
+
+  const {data: transaksi, error: errTabungan} = await sb
+    .from('tabungan')
+    .select('anggota_id,penimbangan_id,jumlah')
+    .in('penimbangan_id',ids);
+
+  if(errTabungan){
+    body.innerHTML = '';
+    msg('rekapTabunganMessage',errTabungan.message,true);
+    return;
+  }
+
+  const {data: anggota, error: errAnggota} = await sb
+    .from('anggota')
+    .select('id,nama');
+
+  if(errAnggota){
+    body.innerHTML = '';
+    msg('rekapTabunganMessage',errAnggota.message,true);
+    return;
+  }
+
+  const namaAnggota = {};
+  (anggota || []).forEach(a=>{
+    namaAnggota[a.id] = a.nama;
+  });
+
+  const nilaiTransaksi = {};
+
+  (transaksi || []).forEach(t=>{
+    nilaiTransaksi[t.penimbangan_id] =
+      (nilaiTransaksi[t.penimbangan_id] || 0) +
+      Number(t.jumlah || 0);
+  });
+
+  const rekap = {};
+
+  penimbangan.forEach(p=>{
+    const id = p.anggota_id;
+
+    if(!rekap[id]){
+      rekap[id] = {
+        nama: namaAnggota[id] || 'Tidak diketahui',
+        transaksi: 0,
+        berat: 0,
+        tabungan: 0
+      };
+    }
+
+    rekap[id].transaksi++;
+    rekap[id].berat += Number(p.berat_kg || 0);
+    rekap[id].tabungan += Number(nilaiTransaksi[p.id] || 0);
+  });
+
+  rekapTabunganData = Object.values(rekap)
+    .sort((a,b)=>a.nama.localeCompare(b.nama,'id'));
+
+  body.innerHTML = rekapTabunganData.map((r,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td>${esc(r.nama)}</td>
+      <td>${r.transaksi}</td>
+      <td>${r.berat.toLocaleString('id-ID')}</td>
+      <td>${money(r.tabungan)}</td>
+    </tr>
+  `).join('');
+
+  const totalTransaksi = penimbangan.length;
+  const totalBerat = penimbangan.reduce(
+    (s,p)=>s+Number(p.berat_kg || 0),0
+  );
+  const totalTabungan = rekapTabunganData.reduce(
+    (s,r)=>s+r.tabungan,0
+  );
+
+  ringkasan.innerHTML = `
+    <div class="stats">
+      <article class="stat">
+        <span>Anggota Menyetor</span>
+        <strong>${rekapTabunganData.length}</strong>
+      </article>
+      <article class="stat">
+        <span>Jumlah Transaksi</span>
+        <strong>${totalTransaksi}</strong>
+      </article>
+      <article class="stat">
+        <span>Total Berat</span>
+        <strong>${totalBerat.toLocaleString('id-ID')} kg</strong>
+      </article>
+      <article class="stat">
+        <span>Total Tabungan</span>
+        <strong>${money(totalTabungan)}</strong>
+      </article>
+    </div>
+  `;
+
+  msg('rekapTabunganMessage','Rekap berhasil dimuat.');
+}
   async function loadMemberWaste(){
   const body = $('memberWasteBody');
   body.innerHTML = '<tr><td colspan="5">Memuat data...</td></tr>';
@@ -375,5 +516,54 @@ window.hapusAnggota = async function(id){
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href);
   }
   function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+ // AKTIFKAN REKAP TABUNGAN BULANAN
+$('rekapTahun').value = new Date().getFullYear();
+$('rekapBulan').value = new Date().getMonth() + 1;
+
+$('btnRekapTabungan').addEventListener('click', loadMonthlySavings);
+ // UNDUH REKAP TABUNGAN KE EXCEL
+$('btnUnduhRekap').addEventListener('click', function(){
+
+  if(typeof XLSX === 'undefined'){
+    alert('Fitur Excel belum berhasil dimuat. Periksa koneksi internet.');
+    return;
+  }
+
+  if(rekapTabunganData.length === 0){
+    alert('Tampilkan rekap terlebih dahulu sebelum mengunduh.');
+    return;
+  }
+
+  const bulan = Number($('rekapBulan').value);
+  const tahun = Number($('rekapTahun').value);
+
+  const namaBulan = new Date(tahun, bulan - 1)
+    .toLocaleDateString('id-ID',{month:'long'});
+
+  const isiExcel = [
+    ['REKAP TABUNGAN BANK SAMPAH GEMPITA'],
+    ['Periode: ' + namaBulan + ' ' + tahun],
+    [],
+    ['No','Nama Anggota','Jumlah Transaksi','Berat (Kg)','Nilai Tabungan'],
+    ...rekapTabunganData.map((r,i)=>[
+      i+1,
+      r.nama,
+      r.transaksi,
+      r.berat,
+      r.tabungan
+    ])
+  ];
+
+  const sheet = XLSX.utils.aoa_to_sheet(isiExcel);
+  const workbook = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(workbook,sheet,'Rekap Tabungan');
+
+  XLSX.writeFile(
+    workbook,
+    'Rekap_Tabungan_GEMPITA_' + bulan + '_' + tahun + '.xlsx'
+  );
+});
+ 
   init();
 })();
