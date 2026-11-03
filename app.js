@@ -430,10 +430,16 @@ function renderWeighWastes(keyword=''){
 }
 
 $('searchWeighWaste').addEventListener('input', function(){
-  console.log('Pencarian sampah:', this.value);
-  console.log('Jumlah data sampah:', wastes.length);
+  const cari = this.value.toLowerCase().trim();
+
+  const hasil = wastes.filter(w =>
+    w.aktif && (w.nama || '').toLowerCase().includes(cari)
+  );
+
   renderWeighWastes(this.value);
-  console.log('Jumlah pilihan tampil:', $('weighWaste').options.length - 1);
+
+  $('weighMessage').textContent =
+    `Kata: ${this.value} | Data: ${wastes.length} | Cocok: ${hasil.length} | Dropdown: ${$('weighWaste').options.length - 1}`;
 });
   async function loadWastes(){
     const {data,error}=await sb.from('jenis_sampah').select('id,nama,harga_per_kg,aktif').order('nama');
