@@ -31,7 +31,12 @@ const configured = cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY &&
     await loadMemberWaste();
   })();
 }
-if(name==='global-sampah') loadGlobalHistory();
+if(name==='global-sampah'){
+  (async()=>{
+    await loadGlobalPrices();
+    await loadGlobalHistory();
+  })();
+}
     if(name==='kas') loadCash();
     if(name==='laporan') loadReports();
   }
@@ -482,7 +487,7 @@ async function loadGlobalPrices(){
 
   const body = $('globalPricesBody');
 
-  body.innerHTML = '<tr><td colspan="4">Memuat data...</td></tr>';
+  body.innerHTML = '<tr><td colspan="5">Memuat data...</td></tr>';
 
   const {data,error} = await sb
     .from('harga_global_sampah')
@@ -497,10 +502,26 @@ async function loadGlobalPrices(){
 
   globalPrices = data || [];
 
-  body.innerHTML = globalPrices.map(w=>`
-    <tr>
-      <td>${esc(w.nama)}</td>
+  // Isi pilihan jenis sampah di menu Global Sampah
+  const select = $('globalNamaJenis');
 
+  if(select){
+    select.innerHTML =
+      '<option value="">Pilih jenis sampah</option>' +
+      globalPrices
+        .filter(w => w.aktif)
+        .map(w => `
+          <option value="${w.id}">
+            ${esc(w.nama)}
+          </option>
+        `).join('');
+  }
+
+  // Tampilkan daftar harga
+  body.innerHTML = globalPrices.map((w,index)=>`
+    <tr>
+      <td>${index+1}</td>
+      <td>${esc(w.nama)}</td>
       <td>
         <input
           type="number"
@@ -511,9 +532,7 @@ async function loadGlobalPrices(){
           ${canManagePrices()?'':'disabled'}
         >
       </td>
-
       <td>${w.aktif?'Aktif':'Nonaktif'}</td>
-
       <td>
         ${canManagePrices()?`
           <button type="button" data-save-global-price="${w.id}">
@@ -532,7 +551,7 @@ async function loadGlobalPrices(){
   `).join('');
 
   if(globalPrices.length===0){
-    body.innerHTML='<tr><td colspan="4">Belum ada jenis sampah.</td></tr>';
+    body.innerHTML='<tr><td colspan="5">Belum ada jenis sampah.</td></tr>';
   }
 
   body.querySelectorAll('[data-save-global-price]').forEach(btn=>{
@@ -889,43 +908,46 @@ function renderGlobalItems(){
       <td>${index+1}</td>
       <td>${esc(item.nama)}</td>
       <td>${Number(item.berat).toLocaleString('id-ID')} kg</td>
+      <td>${money(item.harga)}</td>
+      <td>${money(Number(item.berat)*Number(item.harga))}</td>
       <td>
-        <button type="button" data-remove-global="${index}">
-          Hapus
-        </button>
+        <button type="button" data-remove-global="${index}">Hapus</button>
       </td>
     </tr>
   `).join('');
 
-  const total = globalItems.reduce(
-    (sum,item)=>sum+Number(item.berat),0
-  );
+  const totalBerat = globalItems.reduce((sum,item)=>sum+Number(item.berat||0),0);
+  const totalNilai = globalItems.reduce((sum,item)=>sum+(Number(item.berat||0)*Number(item.harga||0)),0);
 
   $('globalTotalBerat').textContent =
-    total.toLocaleString('id-ID',{maximumFractionDigits:3})+' kg';
+    totalBerat.toLocaleString('id-ID',{maximumFractionDigits:3})+' kg';
+  $('globalTotalNilai').textContent = money(totalNilai);
 }
 
 $('addGlobalItem').addEventListener('click',()=>{
-  const nama = $('globalNamaJenis').value.trim();
+  const id = Number($('globalNamaJenis').value);
   const berat = Number($('globalBerat').value);
+  const jenis = globalPrices.find(w=>Number(w.id)===id && w.aktif);
 
-  if(!nama || !Number.isFinite(berat) || berat<=0){
-    msg('globalMessage','Isi nama jenis sampah dan berat dengan benar.',true);
+  if(!jenis || !Number.isFinite(berat) || berat<=0){
+    msg('globalMessage','Pilih jenis sampah aktif dan masukkan berat yang benar.',true);
     return;
   }
 
-  if(globalItems.some(item=>
-    item.nama.toLowerCase()===nama.toLowerCase()
-  )){
+  if(globalItems.some(item=>Number(item.id)===id)){
     msg('globalMessage','Jenis sampah tersebut sudah ada dalam daftar.',true);
     return;
   }
 
-  globalItems.push({nama,berat});
+  globalItems.push({
+    id: jenis.id,
+    nama: jenis.nama,
+    berat,
+    harga: Number(jenis.harga_per_kg)
+  });
 
   $('globalNamaJenis').value='';
   $('globalBerat').value='';
-
   renderGlobalItems();
   msg('globalMessage','Jenis sampah berhasil ditambahkan.');
 });
@@ -960,55 +982,60 @@ $('globalTanggal').value = todayLocal;
 }
 
 async function loadGlobalHistory(){
-  const body=$('globalHistoryBody');
-  body.innerHTML='<tr><td colspan="5">Memuat data...</td></tr>';
+const body=$('globalHistoryBody');
+body.innerHTML='<tr><td colspan="6">Memuat data...</td></tr>';
 
-  const {data,error}=await sb
-    .from('global_sampah')
-    .select(`
-      id,bulan,tahun,tanggal,catatan,
-      detail_global_sampah(id,nama_jenis,berat_kg)
-    `)
-    .order('tahun',{ascending:false})
-    .order('bulan',{ascending:false});
+const {data,error}=await sb
+.from('global_sampah')
+.select("id,bulan,tahun,tanggal,catatan, detail_global_sampah(id,nama_jenis,berat_kg,harga_per_kg)")
+.order('tahun',{ascending:false})
+.order('bulan',{ascending:false});
 
-  if(error){
-    body.innerHTML='';
-    msg('globalMessage',error.message,true);
-    return;
-  }
+if(error){
+body.innerHTML='';
+msg('globalMessage',error.message,true);
+return;
+}
 
-  const rows=data||[];
+const rows=data||[];
 
-  if(rows.length===0){
-    body.innerHTML='<tr><td colspan="5">Belum ada rekap Global Sampah.</td></tr>';
-    return;
-  }
+if(rows.length===0){
+body.innerHTML='<tr><td colspan="6">Belum ada rekap Global Sampah.</td></tr>';
+return;
+}
 
-  body.innerHTML=rows.map(r=>{
-    const detail=r.detail_global_sampah||[];
-    const total=detail.reduce(
-      (sum,item)=>sum+Number(item.berat_kg||0),0
-    );
+body.innerHTML=rows.map(r=>{
+const detail=r.detail_global_sampah||[];
 
-    const tanggal=r.tanggal
-      ? new Date(r.tanggal+'T00:00:00').toLocaleDateString('id-ID')
-      : '—';
+const totalBerat=detail.reduce(
+  (sum,item)=>sum+Number(item.berat_kg||0),0
+);
 
-    return `
-      <tr>
-        <td>${namaBulanGlobal[r.bulan-1]} ${r.tahun}</td>
-        <td>${tanggal}</td>
-        <td>${detail.length}</td>
-        <td>${total.toLocaleString('id-ID')} kg</td>
-        <td>
-          <button type="button" onclick="editGlobal('${r.id}')">Edit</button>
-          <button type="button" class="btn-danger"
-            onclick="hapusGlobal('${r.id}')">Hapus</button>
-        </td>
-      </tr>
-    `;
-  }).join('');
+const totalNilai=detail.reduce(
+  (sum,item)=>sum+
+    (Number(item.berat_kg||0)*Number(item.harga_per_kg||0)),0
+);
+
+const tanggal=r.tanggal
+  ? new Date(r.tanggal+'T00:00:00').toLocaleDateString('id-ID')
+  : '—';
+
+return `
+  <tr>
+    <td>${namaBulanGlobal[r.bulan-1]} ${r.tahun}</td>
+    <td>${tanggal}</td>
+    <td>${detail.length}</td>
+    <td>${totalBerat.toLocaleString('id-ID')} kg</td>
+    <td>${money(totalNilai)}</td>
+    <td>
+      <button type="button" onclick="editGlobal('${r.id}')">Edit</button>
+      <button type="button" class="btn-danger"
+        onclick="hapusGlobal('${r.id}')">Hapus</button>
+    </td>
+  </tr>
+`;
+
+}).join('');
 }
 
 $('globalForm').addEventListener('submit',async e=>{
@@ -1031,15 +1058,16 @@ $('globalForm').addEventListener('submit',async e=>{
   };
 
   const details=globalItems.map(item=>({
-    nama_jenis:item.nama,
-    berat_kg:item.berat
-  }));
+  nama_jenis:item.nama,
+  berat_kg:item.berat,
+  harga_per_kg:item.harga
+}));
 
   if(editingGlobalId){
 
     const {data:oldData,error:oldError}=await sb
       .from('detail_global_sampah')
-      .select('nama_jenis,berat_kg')
+      .select('nama_jenis,berat_kg,harga_per_kg')
       .eq('global_sampah_id',editingGlobalId);
 
     if(oldError){
@@ -1163,9 +1191,11 @@ window.editGlobal=async function(id){
   $('globalCatatan').value=data.catatan||'';
 
   globalItems=(data.detail_global_sampah||[]).map(item=>({
-    nama:item.nama_jenis,
-    berat:Number(item.berat_kg)
-  }));
+  id: globalPrices.find(w=>w.nama===item.nama_jenis)?.id || null,
+  nama:item.nama_jenis,
+  berat:Number(item.berat_kg),
+  harga:Number(item.harga_per_kg)
+}));
 
   renderGlobalItems();
 
