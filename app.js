@@ -21,6 +21,7 @@ const configured = cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY &&
     if(name==='dashboard') loadDashboard();
     if(name==='anggota') loadMembers();
     if(name==='harga') loadWastes();
+    if(name==='harga-global') loadGlobalPrices();
     if(name==='timbang'){ loadMembers(); loadWastes(); loadWeighings(); }
     if(name==='tabungan') loadSavings();
     if(name==='sampah-anggota'){
@@ -46,6 +47,7 @@ if(name==='global-sampah') loadGlobalHistory();
     document.querySelector('[data-tab="kas"]').classList.toggle('hidden',!canFinance());
     document.querySelector('[data-tab="laporan"]').classList.toggle('hidden',!canFinance());
     if(!canManagePrices()) $('tab-harga').querySelectorAll('form, .muted').forEach(el=>el.classList.add('hidden'));
+  if(!canManagePrices()) $('globalPriceForm').classList.add('hidden');
   }
 
   async function enterApp(){
@@ -470,6 +472,158 @@ $('searchWeighWaste').addEventListener('input', function(){
     if(error){msg('wasteMessage',error.message,true);return;}
     e.target.reset();$('wastePrice').value='0';msg('wasteMessage','Jenis sampah berhasil ditambahkan.');await loadWastes();
   });
+  // =====================================
+// HARGA SAMPAH GLOBAL
+// =====================================
+
+let globalPrices = [];
+
+async function loadGlobalPrices(){
+
+  const body = $('globalPricesBody');
+
+  body.innerHTML = '<tr><td colspan="4">Memuat data...</td></tr>';
+
+  const {data,error} = await sb
+    .from('harga_global_sampah')
+    .select('id,nama,harga_per_kg,aktif')
+    .order('nama');
+
+  if(error){
+    body.innerHTML = '';
+    msg('globalPriceMessage',error.message,true);
+    return;
+  }
+
+  globalPrices = data || [];
+
+  body.innerHTML = globalPrices.map(w=>`
+    <tr>
+      <td>${esc(w.nama)}</td>
+
+      <td>
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          value="${Number(w.harga_per_kg)}"
+          data-global-price="${w.id}"
+          ${canManagePrices()?'':'disabled'}
+        >
+      </td>
+
+      <td>${w.aktif?'Aktif':'Nonaktif'}</td>
+
+      <td>
+        ${canManagePrices()?`
+          <button type="button" data-save-global-price="${w.id}">
+            Simpan
+          </button>
+
+          <button type="button"
+            class="secondary"
+            data-toggle-global-price="${w.id}"
+            data-active="${w.aktif}">
+            ${w.aktif?'Nonaktifkan':'Aktifkan'}
+          </button>
+        `:'Lihat'}
+      </td>
+    </tr>
+  `).join('');
+
+  if(globalPrices.length===0){
+    body.innerHTML='<tr><td colspan="4">Belum ada jenis sampah.</td></tr>';
+  }
+
+  body.querySelectorAll('[data-save-global-price]').forEach(btn=>{
+    btn.addEventListener('click',async()=>{
+
+      const id=Number(btn.dataset.saveGlobalPrice);
+
+      const input=body.querySelector(
+        `[data-global-price="${id}"]`
+      );
+
+      const harga=Number(input.value);
+
+      if(!Number.isFinite(harga)||harga<0){
+        msg('globalPriceMessage','Harga tidak boleh negatif.',true);
+        return;
+      }
+
+      const {error}=await sb
+        .from('harga_global_sampah')
+        .update({harga_per_kg:harga})
+        .eq('id',id);
+
+      if(error){
+        msg('globalPriceMessage',error.message,true);
+        return;
+      }
+
+      msg('globalPriceMessage','Harga berhasil diperbarui.');
+      await loadGlobalPrices();
+    });
+  });
+
+  body.querySelectorAll('[data-toggle-global-price]').forEach(btn=>{
+    btn.addEventListener('click',async()=>{
+
+      const id=Number(btn.dataset.toggleGlobalPrice);
+      const aktif=btn.dataset.active!=='true';
+
+      const {error}=await sb
+        .from('harga_global_sampah')
+        .update({aktif})
+        .eq('id',id);
+
+      if(error){
+        msg('globalPriceMessage',error.message,true);
+        return;
+      }
+
+      msg('globalPriceMessage','Status jenis sampah diperbarui.');
+      await loadGlobalPrices();
+    });
+  });
+}
+
+$('globalPriceForm').addEventListener('submit',async e=>{
+
+  e.preventDefault();
+
+  if(!canManagePrices()){
+    msg('globalPriceMessage','Hanya Admin dan Bendahara yang boleh mengelola harga.',true);
+    return;
+  }
+
+  const nama=$('globalPriceName').value.trim();
+  const harga=Number($('globalPriceValue').value);
+
+  if(!nama||!Number.isFinite(harga)||harga<0){
+    msg('globalPriceMessage','Isi nama dan harga dengan benar.',true);
+    return;
+  }
+
+  const {error}=await sb
+    .from('harga_global_sampah')
+    .insert({
+      nama,
+      harga_per_kg:harga,
+      aktif:true
+    });
+
+  if(error){
+    msg('globalPriceMessage',error.message,true);
+    return;
+  }
+
+  e.target.reset();
+
+  msg('globalPriceMessage','Jenis sampah global berhasil ditambahkan.');
+
+  await loadGlobalPrices();
+});
 
   function updateEstimate(){
     const opt=$('weighWaste').selectedOptions[0], weight=Number($('weighWeight').value||0), price=Number(opt?.dataset.price||0);
