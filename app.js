@@ -90,7 +90,7 @@ function(){
   renderWeighMembers(this.value);
 });
 async function loadMembers(){
-  const {data,error}=await sb.from('anggota').select('id,kode_anggota,nama,alamat,no_hp,saldo').order('nama');
+  const {data,error}=await sb.from('anggota').select('id,kode_anggota,nama,alamat,no_hp,saldo').order('kode_anggota');
 
   if(error){
     msg('memberMessage',error.message,true);
@@ -206,10 +206,7 @@ window.hapusAnggota = async function(id){
     const body = $('savingsBody');
     body.innerHTML = '<tr><td colspan="3">Memuat data...</td></tr>';
 
-    const {data, error} = await sb
-      .from('anggota')
-      .select('id,kode_anggota,nama,saldo')
-      .order('nama');
+    const {data,error}=await sb.from('anggota').select('id,kode_anggota,nama,alamat,no_hp,saldo').order('kode_anggota');
 
     if(error){
       body.innerHTML = '';
