@@ -475,24 +475,113 @@ $('searchWeighWaste').addEventListener('input', function(){
     $('weighEstimate').value=money(weight*price);
   }
   $('weighWaste').addEventListener('change',updateEstimate);$('weighWeight').addEventListener('input',updateEstimate);
-  $('weighForm').addEventListener('submit',async e=>{
-    e.preventDefault();
-    const memberId=Number($('weighMember').value), wasteId=Number($('weighWaste').value), weight=Number($('weighWeight').value);
-    const waste=wastes.find(w=>w.id===wasteId);
-    if(!memberId||!waste||!waste.aktif||weight<=0){msg('weighMessage','Pilih anggota, jenis sampah aktif, dan berat yang benar.',true);return;}
-    if(Number(waste.harga_per_kg)<=0){msg('weighMessage','Harga jenis sampah masih Rp0. Atur harga terlebih dahulu.',true);return;}
-    const row={anggota_id:memberId,jenis_sampah_id:wasteId,berat_kg:weight,harga_per_kg:Number(waste.harga_per_kg),petugas_id:sessionUser.id};
-    const {error}=await sb.from('penimbangan').insert(row);
-    if(error){msg('weighMessage',error.message,true);return;}
-    e.target.reset();
+  let weighCart = [];
+
+function renderWeighCart(){
+const body = $('weighCartBody');
+if(!body) return;
+
+body.innerHTML = weighCart.map((item,index)=>`
+  <tr>
+    <td>${esc(item.nama)}</td>
+    <td>${item.berat.toLocaleString('id-ID')} kg</td>
+    <td>${money(item.harga)}</td>
+    <td>${money(item.berat * item.harga)}</td>
+    <td><button type="button" data-remove-weigh="${index}">Hapus</button></td>
+  </tr>
+`).join('');
+
+$('weighCartTotal').textContent = money(
+  weighCart.reduce((sum,item)=>sum+(item.berat*item.harga),0)
+);
+
+}
+
+$('weighForm').addEventListener('submit',async e=>{
+e.preventDefault();
+
+const memberId = Number($('weighMember').value);
+
+if(!memberId || weighCart.length===0){
+  msg('weighMessage','Pilih anggota dan tambahkan minimal satu jenis sampah.',true);
+  return;
+}
+
+const rows = weighCart.map(item=>({
+  anggota_id:memberId,
+  jenis_sampah_id:item.id,
+  berat_kg:item.berat,
+  harga_per_kg:item.harga,
+  petugas_id:sessionUser.id
+}));
+
+const {error} = await sb.from('penimbangan').insert(rows);
+
+if(error){
+  msg('weighMessage',error.message,true);
+  return;
+}
+
+weighCart = [];
+e.target.reset();
+renderWeighCart();
 renderWeighMembers();
 renderWeighWastes();
 $('weighEstimate').value='';
-msg('weighMessage','Penimbangan tersimpan; saldo anggota ditambahkan otomatis oleh database.');
+
+msg('weighMessage','Semua penimbangan berhasil disimpan. Saldo anggota diperbarui otomatis.');
+
 await loadMembers();
 await loadWeighings();
-await loadDashboard();  
+await loadDashboard();
+
+});
+
+$('addWeighItem').addEventListener('click',()=>{
+
+  if(!Number($('weighMember').value)){
+    msg('weighMessage','Pilih anggota terlebih dahulu.',true);
+    return;
+  }
+
+  const wasteId = Number($('weighWaste').value);
+  const weight = Number($('weighWeight').value);
+  const waste = wastes.find(w=>w.id===wasteId);
+
+  if(!waste || !waste.aktif || weight<=0){
+    msg('weighMessage','Pilih jenis sampah aktif dan masukkan berat yang benar.',true);
+    return;
+  }
+
+  if(Number(waste.harga_per_kg)<=0){
+    msg('weighMessage','Harga jenis sampah masih Rp0. Atur harga terlebih dahulu.',true);
+    return;
+  }
+
+  weighCart.push({
+    id:wasteId,
+    nama:waste.nama,
+    berat:weight,
+    harga:Number(waste.harga_per_kg)
   });
+
+  $('weighWaste').value='';
+  $('weighWeight').value='';
+  $('weighEstimate').value='';
+
+  renderWeighCart();
+
+  msg('weighMessage','Jenis sampah berhasil ditambahkan ke daftar.');
+});
+
+$('weighCartBody').addEventListener('click',e=>{
+const button = e.target.closest('[data-remove-weigh]');
+if(!button) return;
+
+weighCart.splice(Number(button.dataset.removeWeigh),1);
+renderWeighCart();
+
+});
   async function loadWeighings(){
     const {data,error}=await sb.from('penimbangan').select('id,anggota_id,jenis_sampah_id,berat_kg,total,tanggal').order('tanggal',{ascending:false}).limit(50);
     if(error){msg('weighMessage',error.message,true);return;}
