@@ -97,7 +97,11 @@ async function loadMembers(){
     return;
   }
 
-  members=data||[];
+  members=(data||[]).sort((a,b)=>{
+  const noA = Number((a.kode_anggota||'').match(/(\d+)$/)?.[1] || 0);
+  const noB = Number((b.kode_anggota||'').match(/(\d+)$/)?.[1] || 0);
+  return noA-noB;
+});
 
   $('membersBody').innerHTML=members.map(m=>`<tr>
 <td>${esc(m.kode_anggota)}</td>
