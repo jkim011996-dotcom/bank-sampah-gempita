@@ -430,9 +430,11 @@ function renderWeighWastes(keyword=''){
 }
 
 $('searchWeighWaste').addEventListener('input', function(){
+  console.log('Pencarian sampah:', this.value);
+  console.log('Jumlah data sampah:', wastes.length);
   renderWeighWastes(this.value);
+  console.log('Jumlah pilihan tampil:', $('weighWaste').options.length - 1);
 });
-
   async function loadWastes(){
     const {data,error}=await sb.from('jenis_sampah').select('id,nama,harga_per_kg,aktif').order('nama');
     if(error){msg('wasteMessage',error.message,true);return;}
