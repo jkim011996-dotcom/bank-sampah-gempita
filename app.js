@@ -30,6 +30,7 @@ const configured = cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY &&
     await loadMemberWaste();
   })();
 }
+if(name==='global-sampah') loadGlobalHistory();
     if(name==='kas') loadCash();
     if(name==='laporan') loadReports();
   }
@@ -712,6 +713,340 @@ $('btnUnduhRekap').addEventListener('click', function(){
     'Rekap_Tabungan_GEMPITA_' + bulan + '_' + tahun + '.xlsx'
   );
 });
- 
+ // =====================================
+// GLOBAL SAMPAH GEMPITA
+// =====================================
+
+let globalItems = [];
+let editingGlobalId = null;
+
+const namaBulanGlobal = [
+  'Januari','Februari','Maret','April',
+  'Mei','Juni','Juli','Agustus',
+  'September','Oktober','November','Desember'
+];
+
+function renderGlobalItems(){
+  const body = $('globalItemsBody');
+  if(!body) return;
+
+  body.innerHTML = globalItems.map((item,index)=>`
+    <tr>
+      <td>${index+1}</td>
+      <td>${esc(item.nama)}</td>
+      <td>${Number(item.berat).toLocaleString('id-ID')} kg</td>
+      <td>
+        <button type="button" data-remove-global="${index}">
+          Hapus
+        </button>
+      </td>
+    </tr>
+  `).join('');
+
+  const total = globalItems.reduce(
+    (sum,item)=>sum+Number(item.berat),0
+  );
+
+  $('globalTotalBerat').textContent =
+    total.toLocaleString('id-ID',{maximumFractionDigits:3})+' kg';
+}
+
+$('addGlobalItem').addEventListener('click',()=>{
+  const nama = $('globalNamaJenis').value.trim();
+  const berat = Number($('globalBerat').value);
+
+  if(!nama || !Number.isFinite(berat) || berat<=0){
+    msg('globalMessage','Isi nama jenis sampah dan berat dengan benar.',true);
+    return;
+  }
+
+  if(globalItems.some(item=>
+    item.nama.toLowerCase()===nama.toLowerCase()
+  )){
+    msg('globalMessage','Jenis sampah tersebut sudah ada dalam daftar.',true);
+    return;
+  }
+
+  globalItems.push({nama,berat});
+
+  $('globalNamaJenis').value='';
+  $('globalBerat').value='';
+
+  renderGlobalItems();
+  msg('globalMessage','Jenis sampah berhasil ditambahkan.');
+});
+
+$('globalItemsBody').addEventListener('click',e=>{
+  const button=e.target.closest('[data-remove-global]');
+  if(!button) return;
+
+  globalItems.splice(Number(button.dataset.removeGlobal),1);
+  renderGlobalItems();
+});
+
+function resetGlobalForm(){
+  editingGlobalId=null;
+  globalItems=[];
+
+  $('globalForm').reset();
+
+  $('globalBulan').value=String(new Date().getMonth()+1);
+  $('globalTahun').value=new Date().getFullYear();
+  const today = new Date();
+const todayLocal = new Date(
+  today.getTime() - today.getTimezoneOffset() * 60000
+).toISOString().slice(0,10);
+
+$('globalTanggal').value = todayLocal;
+
+  $('globalForm').querySelector('[type="submit"]').textContent=
+    'Simpan Rekap Global';
+
+  renderGlobalItems();
+}
+
+async function loadGlobalHistory(){
+  const body=$('globalHistoryBody');
+  body.innerHTML='<tr><td colspan="5">Memuat data...</td></tr>';
+
+  const {data,error}=await sb
+    .from('global_sampah')
+    .select(`
+      id,bulan,tahun,tanggal,catatan,
+      detail_global_sampah(id,nama_jenis,berat_kg)
+    `)
+    .order('tahun',{ascending:false})
+    .order('bulan',{ascending:false});
+
+  if(error){
+    body.innerHTML='';
+    msg('globalMessage',error.message,true);
+    return;
+  }
+
+  const rows=data||[];
+
+  if(rows.length===0){
+    body.innerHTML='<tr><td colspan="5">Belum ada rekap Global Sampah.</td></tr>';
+    return;
+  }
+
+  body.innerHTML=rows.map(r=>{
+    const detail=r.detail_global_sampah||[];
+    const total=detail.reduce(
+      (sum,item)=>sum+Number(item.berat_kg||0),0
+    );
+
+    const tanggal=r.tanggal
+      ? new Date(r.tanggal+'T00:00:00').toLocaleDateString('id-ID')
+      : '—';
+
+    return `
+      <tr>
+        <td>${namaBulanGlobal[r.bulan-1]} ${r.tahun}</td>
+        <td>${tanggal}</td>
+        <td>${detail.length}</td>
+        <td>${total.toLocaleString('id-ID')} kg</td>
+        <td>
+          <button type="button" onclick="editGlobal('${r.id}')">Edit</button>
+          <button type="button" class="btn-danger"
+            onclick="hapusGlobal('${r.id}')">Hapus</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+$('globalForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+
+  const bulan=Number($('globalBulan').value);
+  const tahun=Number($('globalTahun').value);
+  const tanggal=$('globalTanggal').value;
+
+  if(!bulan || !tahun || !tanggal || globalItems.length===0){
+    msg('globalMessage','Lengkapi periode, tanggal, dan minimal satu jenis sampah.',true);
+    return;
+  }
+
+  const header={
+    bulan,
+    tahun,
+    tanggal,
+    catatan:$('globalCatatan').value.trim()||null
+  };
+
+  const details=globalItems.map(item=>({
+    nama_jenis:item.nama,
+    berat_kg:item.berat
+  }));
+
+  if(editingGlobalId){
+
+    const {data:oldData,error:oldError}=await sb
+      .from('detail_global_sampah')
+      .select('nama_jenis,berat_kg')
+      .eq('global_sampah_id',editingGlobalId);
+
+    if(oldError){
+      msg('globalMessage',oldError.message,true);
+      return;
+    }
+
+    const {data:oldHeader,error:headerError}=await sb
+      .from('global_sampah')
+      .select('bulan,tahun,tanggal,catatan')
+      .eq('id',editingGlobalId)
+      .single();
+
+    if(headerError){
+      msg('globalMessage',headerError.message,true);
+      return;
+    }
+
+    const {error:updateError}=await sb
+      .from('global_sampah')
+      .update(header)
+      .eq('id',editingGlobalId);
+
+    if(updateError){
+      msg('globalMessage',updateError.message,true);
+      return;
+    }
+
+    const {error:deleteError}=await sb
+      .from('detail_global_sampah')
+      .delete()
+      .eq('global_sampah_id',editingGlobalId);
+
+    if(deleteError){
+      await sb.from('global_sampah')
+        .update(oldHeader).eq('id',editingGlobalId);
+
+      msg('globalMessage',deleteError.message,true);
+      return;
+    }
+
+    const {error:insertError}=await sb
+      .from('detail_global_sampah')
+      .insert(details.map(item=>({
+        ...item,
+        global_sampah_id:editingGlobalId
+      })));
+
+    if(insertError){
+      await sb.from('detail_global_sampah').insert(
+        (oldData||[]).map(item=>({
+          ...item,
+          global_sampah_id:editingGlobalId
+        }))
+      );
+
+      await sb.from('global_sampah')
+        .update(oldHeader).eq('id',editingGlobalId);
+
+      msg('globalMessage','Gagal memperbarui detail. Data lama dipulihkan. '+insertError.message,true);
+      return;
+    }
+
+    msg('globalMessage','Rekap Global Sampah berhasil diperbarui.');
+
+  }else{
+
+    const {data:headerData,error:headerError}=await sb
+      .from('global_sampah')
+      .insert({
+        ...header,
+        created_by:sessionUser.id
+      })
+      .select('id')
+      .single();
+
+    if(headerError){
+      msg('globalMessage',headerError.message,true);
+      return;
+    }
+
+    const {error:detailError}=await sb
+      .from('detail_global_sampah')
+      .insert(details.map(item=>({
+        ...item,
+        global_sampah_id:headerData.id
+      })));
+
+    if(detailError){
+      await sb.from('global_sampah')
+        .delete().eq('id',headerData.id);
+
+      msg('globalMessage','Gagal menyimpan detail sampah: '+detailError.message,true);
+      return;
+    }
+
+    msg('globalMessage','Rekap Global Sampah berhasil disimpan.');
+  }
+
+  resetGlobalForm();
+  await loadGlobalHistory();
+});
+
+window.editGlobal=async function(id){
+  const {data,error}=await sb
+    .from('global_sampah')
+    .select('*,detail_global_sampah(*)')
+    .eq('id',id)
+    .single();
+
+  if(error){
+    alert('Gagal mengambil data: '+error.message);
+    return;
+  }
+
+  editingGlobalId=id;
+
+  $('globalBulan').value=String(data.bulan);
+  $('globalTahun').value=data.tahun;
+  $('globalTanggal').value=data.tanggal;
+  $('globalCatatan').value=data.catatan||'';
+
+  globalItems=(data.detail_global_sampah||[]).map(item=>({
+    nama:item.nama_jenis,
+    berat:Number(item.berat_kg)
+  }));
+
+  renderGlobalItems();
+
+  $('globalForm').querySelector('[type="submit"]').textContent=
+    'Simpan Perubahan';
+
+  $('globalForm').scrollIntoView({behavior:'smooth'});
+
+  msg('globalMessage','Mode edit: silakan ubah data lalu simpan perubahan.');
+};
+
+window.hapusGlobal=async function(id){
+  if(!confirm('Yakin ingin menghapus rekap Global Sampah ini?')){
+    return;
+  }
+
+  const {error}=await sb
+    .from('global_sampah')
+    .delete()
+    .eq('id',id);
+
+  if(error){
+    alert('Gagal menghapus: '+error.message);
+    return;
+  }
+
+  if(String(editingGlobalId)===String(id)){
+    resetGlobalForm();
+  }
+
+  alert('Rekap Global Sampah berhasil dihapus.');
+  await loadGlobalHistory();
+};
+
+// Nilai awal formulir
+resetGlobalForm();
   init();
 })();
