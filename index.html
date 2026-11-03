@@ -127,25 +127,51 @@
       <section id="tab-timbang" class="tabpage hidden">
         <div class="card">
           <h2>Catat penimbangan</h2>
-          <form id="weighForm" class="formgrid">
-          <label>Cari Nama Anggota
-  <input id="searchWeighMember" type="text" placeholder="Ketik nama anggota...">
+          <form id="weighForm" class="formgrid"><label>Cari Nama Anggota
+<input id="searchWeighMember" type="text" placeholder="Ketik nama anggota...">
 </label>
 
 <label>Anggota
-  <select id="weighMember" required></select>
-</label>
-            <label>Cari Jenis Sampah
-  <input id="searchWeighWaste" type="text" placeholder="Ketik nama jenis sampah...">
+<select id="weighMember" required></select>
 </label>
 
-<label>Jenis sampah
-  <select id="weighWaste" required></select>
+  <hr><label>Cari Jenis Sampah
+<input id="searchWeighWaste" type="text" placeholder="Ketik nama jenis sampah...">
 </label>
-            <label>Berat (kg)<input id="weighWeight" type="number" min="0.001" step="0.001" required></label>
-            <label>Perkiraan nilai (Rp)<input id="weighEstimate" readonly></label>
-            <button type="submit">Simpan penimbangan</button>
-          </form>
+
+<label>Jenis Sampah
+<select id="weighWaste"></select>
+</label>
+
+<label>Berat (kg)
+<input id="weighWeight" type="number" min="0.001" step="0.001">
+</label>
+
+<label>Perkiraan Nilai (Rp)
+<input id="weighEstimate" readonly>
+</label>
+
+<button type="button" id="addWeighItem">+ Tambah ke Daftar</button>
+
+  <div style="grid-column:1/-1">
+    <h3>Daftar Sampah yang Ditimbang</h3><table>
+  <thead>
+    <tr>
+      <th>Jenis Sampah</th>
+      <th>Berat</th>
+      <th>Harga/kg</th>
+      <th>Nilai</th>
+      <th>Aksi</th>
+    </tr>
+  </thead>
+  <tbody id="weighCartBody"></tbody>
+</table>
+
+<p>Total Nilai: <strong id="weighCartTotal">Rp0</strong></p>
+
+  </div><button type="submit">Simpan Semua Penimbangan</button>
+
+</form>
           <p id="weighMessage" class="message"></p>
         </div>
         <div class="card"><h2>Penimbangan terbaru</h2><div class="tablewrap"><table><thead><tr><th>Tanggal</th><th>Anggota</th><th>Jenis</th><th>Berat</th><th>Nilai</th><th>Aksi</th></tr></thead><tbody id="weighingsBody"></tbody></table></div></div>
