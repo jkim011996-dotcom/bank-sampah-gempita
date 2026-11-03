@@ -155,6 +155,60 @@
       </table>
     </div>
     <p id="savingsMessage" class="message"></p>
+  </div>  <div class="card">
+    <h2>Rekap Tabungan Bulanan</h2>
+    <p class="muted">Rekap berdasarkan tanggal penimbangan.</p><div class="formgrid">
+  <label>
+    Bulan
+    <select id="rekapBulan">
+      <option value="1">Januari</option>
+      <option value="2">Februari</option>
+      <option value="3">Maret</option>
+      <option value="4">April</option>
+      <option value="5">Mei</option>
+      <option value="6">Juni</option>
+      <option value="7">Juli</option>
+      <option value="8">Agustus</option>
+      <option value="9">September</option>
+      <option value="10">Oktober</option>
+      <option value="11">November</option>
+      <option value="12">Desember</option>
+    </select>
+  </label>
+
+  <label>
+    Tahun
+    <input type="number" id="rekapTahun" min="2020" max="2100">
+  </label>
+</div>
+
+<button id="btnRekapTabungan" type="button">
+  Tampilkan Rekap
+</button>
+
+<button id="btnUnduhRekap" type="button">
+  Unduh Excel
+</button>
+
+<div id="rekapRingkasan"></div>
+
+<div class="tablewrap">
+  <table>
+    <thead>
+      <tr>
+        <th>No</th>
+        <th>Nama Anggota</th>
+        <th>Jumlah Transaksi</th>
+        <th>Berat (Kg)</th>
+        <th>Nilai Tabungan</th>
+      </tr>
+    </thead>
+    <tbody id="rekapTabunganBody"></tbody>
+  </table>
+</div>
+
+<p id="rekapTabunganMessage" class="message"></p>
+
   </div>
 </section>
  
@@ -202,6 +256,7 @@
   <footer>Bank Sampah GEMPITA · Aplikasi pencatatan</footer>
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="app.js"></script>
   <script>
     if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
