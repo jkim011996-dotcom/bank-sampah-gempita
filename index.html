@@ -44,8 +44,9 @@
         <button data-tab="tabungan">Tabungan</button>
         <button data-tab="sampah-anggota">Sampah per Anggota</button>
         <button data-tab="kas">Kas</button>
-        <button data-tab="global-sampah">Global Sampah</button>
-        <button data-tab="laporan">Laporan</button>
+<button data-tab="harga-global">Harga Sampah Global</button>
+<button data-tab="global-sampah">Global Sampah</button>
+<button data-tab="laporan">Laporan</button>
       </nav>
 
      <section id="tab-dashboard" class="tabpage">
@@ -273,6 +274,50 @@
     <p id="memberWasteMessage" class="message"></p>
   </div>
 </section>
+<section id="tab-harga-global" class="tabpage hidden">
+
+  <div class="card">
+    <h2>Tambah Harga Sampah Global</h2>
+
+    <form id="globalPriceForm" class="formgrid">
+
+      <label>Nama jenis sampah
+        <input type="text" id="globalPriceName"
+          placeholder="Contoh: Kardus" required>
+      </label>
+
+      <label>Harga dari pelapak per kg (Rp)
+        <input type="number" id="globalPriceValue"
+          min="0" step="0.01" required>
+      </label>
+
+      <button type="submit">Tambah Jenis Sampah</button>
+
+    </form>
+
+    <p id="globalPriceMessage" class="message"></p>
+  </div>
+
+  <div class="card">
+    <h2>Daftar Harga Sampah Global</h2>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Jenis Sampah</th>
+            <th>Harga/kg</th>
+            <th>Status</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+
+        <tbody id="globalPricesBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</section>
 <section id="tab-global-sampah" class="tabpage hidden">
 
   <div class="card">
@@ -418,4 +463,4 @@
 </script>
 
 </body>
-    </html>
+        </html>
