@@ -415,13 +415,30 @@ async function loadMonthlySavings(){
     if(error){msg('memberMessage',error.message,true);return;}
     e.target.reset();msg('memberMessage','Anggota berhasil disimpan.');await loadMembers();await loadDashboard();
   });
+function renderWeighWastes(keyword=''){
+  const cari = keyword.toLowerCase().trim();
+
+  const hasil = wastes.filter(w =>
+    w.aktif && (w.nama || '').toLowerCase().includes(cari)
+  );
+
+  $('weighWaste').innerHTML =
+    '<option value="">Pilih jenis sampah</option>' +
+    hasil.map(w =>
+      `<option value="${w.id}" data-price="${w.harga_per_kg}">${esc(w.nama)} — ${money(w.harga_per_kg)}/kg</option>`
+    ).join('');
+}
+
+$('searchWeighWaste').addEventListener('input', function(){
+  renderWeighWastes(this.value);
+});
 
   async function loadWastes(){
     const {data,error}=await sb.from('jenis_sampah').select('id,nama,harga_per_kg,aktif').order('nama');
     if(error){msg('wasteMessage',error.message,true);return;}
     wastes=data||[];
     $('pricesBody').innerHTML=wastes.map(w=>`<tr><td>${esc(w.nama)}</td><td><input type="number" min="0" step="0.01" value="${Number(w.harga_per_kg)}" data-price="${w.id}" ${canManagePrices()?'':'disabled'}></td><td>${w.aktif?'Aktif':'Nonaktif'}</td><td>${canManagePrices()?`<button type="button" data-save-price="${w.id}">Simpan</button> <button type="button" class="secondary" data-toggle-waste="${w.id}" data-active="${w.aktif}">${w.aktif?'Nonaktifkan':'Aktifkan'}</button>`:'Lihat'}</td></tr>`).join('');
-    $('weighWaste').innerHTML='<option value="">Pilih jenis sampah</option>'+wastes.filter(w=>w.aktif).map(w=>`<option value="${w.id}" data-price="${w.harga_per_kg}">${esc(w.nama)} — ${money(w.harga_per_kg)}/kg</option>`).join('');
+   renderWeighWastes($('searchWeighWaste').value);
     $('pricesBody').querySelectorAll('[data-save-price]').forEach(btn=>btn.addEventListener('click',async()=>{
       const id=Number(btn.dataset.savePrice), input=$('pricesBody').querySelector(`[data-price="${id}"]`), price=Number(input.value);
       if(!Number.isFinite(price)||price<0){msg('wasteMessage','Harga harus nol atau lebih.',true);return;}
@@ -459,7 +476,14 @@ async function loadMonthlySavings(){
     const row={anggota_id:memberId,jenis_sampah_id:wasteId,berat_kg:weight,harga_per_kg:Number(waste.harga_per_kg),petugas_id:sessionUser.id};
     const {error}=await sb.from('penimbangan').insert(row);
     if(error){msg('weighMessage',error.message,true);return;}
-    e.target.reset();$('weighEstimate').value='';msg('weighMessage','Penimbangan tersimpan; saldo anggota ditambahkan otomatis oleh database.');await loadMembers();await loadWeighings();await loadDashboard();    
+    e.target.reset();
+renderWeighMembers();
+renderWeighWastes();
+$('weighEstimate').value='';
+msg('weighMessage','Penimbangan tersimpan; saldo anggota ditambahkan otomatis oleh database.');
+await loadMembers();
+await loadWeighings();
+await loadDashboard();  
   });
   async function loadWeighings(){
     const {data,error}=await sb.from('penimbangan').select('id,anggota_id,jenis_sampah_id,berat_kg,total,tanggal').order('tanggal',{ascending:false}).limit(50);
