@@ -2,9 +2,9 @@
   const $ = id => document.getElementById(id);
   const money = n => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(n||0));
   const dateFmt = v => v ? new Date(v).toLocaleString('id-ID') : '—';
-  const cfg = window.GEMPITA_CONFIG || {};
-  const configured = cfg.SUPABASE_URL && cfg.SUPABASE_PUBLISHABLE_KEY &&
-    !cfg.SUPABASE_URL.includes('TEMPEL_') && !cfg.SUPABASE_PUBLISHABLE_KEY.includes('TEMPEL_');
+ const cfg = window.GEMPITA_CONFIG || {};
+const configured = cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY &&
+  !cfg.SUPABASE_URL.includes('TEMPEL_') && !cfg.SUPABASE_ANON_KEY.includes('TEMPEL_');
   let sb = null, sessionUser = null, profile = null, members = [], wastes = [], weighings = [], cashRows = [];
 
   function msg(id, text, bad=false){ const el=$(id); if(el){el.textContent=text;el.className='message '+(bad?'error':'success');} }
@@ -55,7 +55,7 @@
   async function init(){
     if(!configured){show('setupNotice',true); $('loginPanel').classList.add('hidden'); return;}
     if(!window.supabase){show('setupNotice',true); $('setupNotice').querySelector('p').textContent='Pustaka Supabase belum berhasil dimuat. Periksa koneksi internet.';return;}
-    sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_PUBLISHABLE_KEY);
+    sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY);
     const {data:{session}}=await sb.auth.getSession();
     if(session){sessionUser=session.user; await enterApp();}
   }
