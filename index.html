@@ -304,13 +304,14 @@
     <div class="tablewrap">
       <table>
         <thead>
-          <tr>
-            <th>Jenis Sampah</th>
-            <th>Harga/kg</th>
-            <th>Status</th>
-            <th>Aksi</th>
-          </tr>
-        </thead>
+  <tr>
+    <th>No</th>
+    <th>Jenis Sampah</th>
+    <th>Harga/kg</th>
+    <th>Status</th>
+    <th>Aksi</th>
+  </tr>
+</thead>
 
         <tbody id="globalPricesBody"></tbody>
       </table>
@@ -364,9 +365,10 @@
       <h3>Tambah Jenis Sampah</h3>
 
       <label>Nama jenis sampah
-        <input type="text" id="globalNamaJenis"
-          placeholder="Contoh: Kardus">
-      </label>
+  <select id="globalNamaJenis" required>
+    <option value="">Pilih jenis sampah</option>
+  </select>
+</label>
 
       <label>Berat (kg)
         <input type="number" id="globalBerat"
@@ -383,13 +385,15 @@
         <div class="tablewrap">
           <table>
             <thead>
-              <tr>
-                <th>No</th>
-                <th>Jenis Sampah</th>
-                <th>Berat (Kg)</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
+  <tr>
+    <th>No</th>
+    <th>Jenis Sampah</th>
+    <th>Berat (Kg)</th>
+    <th>Harga/kg</th>
+    <th>Nilai Penjualan</th>
+    <th>Aksi</th>
+  </tr>
+</thead>
             <tbody id="globalItemsBody"></tbody>
           </table>
         </div>
@@ -398,6 +402,10 @@
           Total Berat:
           <strong id="globalTotalBerat">0 kg</strong>
         </p>
+        <p>
+  Total Penjualan:
+  <strong id="globalTotalNilai">Rp0</strong>
+</p>
       </div>
 
       <button type="submit">Simpan Rekap Global</button>
@@ -412,17 +420,18 @@
 
     <div class="tablewrap">
       <table>
-        <thead>
-          <tr>
-            <th>Periode</th>
-            <th>Tanggal</th>
-            <th>Jumlah Jenis</th>
-            <th>Total Berat</th>
-            <th>Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="globalHistoryBody"></tbody>
-      </table>
+  <thead>
+    <tr>
+      <th>Periode</th>
+      <th>Tanggal</th>
+      <th>Jumlah Jenis</th>
+      <th>Total Berat</th>
+      <th>Total Penjualan</th>
+      <th>Aksi</th>
+    </tr>
+  </thead>
+  <tbody id="globalHistoryBody"></tbody>
+</table>
     </div>
   </div>
 
@@ -463,4 +472,4 @@
 </script>
 
 </body>
-        </html>
+  </html>
