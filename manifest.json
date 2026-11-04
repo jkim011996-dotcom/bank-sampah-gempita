@@ -1,10 +1,13 @@
 {
   "name": "Bank Sampah GEMPITA",
   "short_name": "GEMPITA",
-  "description": "Aplikasi pencatatan Bank Sampah GEMPITA",
-  "start_url": "./",
+  "start_url": "/bank-sampah-gempita/",
+  "scope": "/bank-sampah-gempita/",
   "display": "standalone",
-  "background_color": "#f3f7f4",
+  "background_color": "#000000",
   "theme_color": "#176b48",
-  "icons": [{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
-}
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image
