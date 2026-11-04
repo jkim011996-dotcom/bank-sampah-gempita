@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gempita-v5';
+const CACHE = 'gempita-online-v3';
 
 const ASSETS = [
   './',
