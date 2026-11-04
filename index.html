@@ -129,21 +129,39 @@
       <section id="tab-timbang" class="tabpage hidden">
         <div class="card">
           <h2>Catat penimbangan</h2>
-          <form id="weighForm" class="formgrid"><label>Cari Nama Anggota
-<input id="searchWeighMember" type="text" placeholder="Ketik nama anggota...">
+          <form id="weighForm" class="formgrid">
+
+<label>Cari Nama Anggota
+<input id="searchWeighMember" type="text"
+placeholder="Ketik nama anggota..." autocomplete="off">
 </label>
 
-<label>Anggota
-<select id="weighMember" required></select>
+<div id="weighMemberResults" class="search-results"
+style="grid-column:1/-1"></div>
+
+<input type="hidden" id="weighMember">
+
+<div style="grid-column:1/-1">
+<strong>Anggota dipilih:</strong>
+<span id="selectedWeighMember">Belum dipilih</span>
+</div>
+
+<hr>
+
+<label>Cari Jenis Sampah
+<input id="searchWeighWaste" type="text"
+placeholder="Ketik jenis sampah..." autocomplete="off">
 </label>
 
-  <hr><label>Cari Jenis Sampah
-<input id="searchWeighWaste" type="text" placeholder="Ketik nama jenis sampah...">
-</label>
+<div id="weighWasteResults" class="search-results"
+style="grid-column:1/-1"></div>
 
-<label>Jenis Sampah
-<select id="weighWaste"></select>
-</label>
+<input type="hidden" id="weighWaste">
+
+<div style="grid-column:1/-1">
+<strong>Jenis sampah dipilih:</strong>
+<span id="selectedWeighWaste">Belum dipilih</span>
+</div>
 
 <label>Berat (kg)
 <input id="weighWeight" type="number" min="0.001" step="0.001">
@@ -153,25 +171,29 @@
 <input id="weighEstimate" readonly>
 </label>
 
-<button type="button" id="addWeighItem">+ Tambah ke Daftar</button>
+<button type="button" id="addWeighItem">
++ Tambah ke Daftar
+</button>
 
-  <div style="grid-column:1/-1">
-    <h3>Daftar Sampah yang Ditimbang</h3><table>
-  <thead>
-    <tr>
-      <th>Jenis Sampah</th>
-      <th>Berat</th>
-      <th>Harga/kg</th>
-      <th>Nilai</th>
-      <th>Aksi</th>
-    </tr>
-  </thead>
-  <tbody id="weighCartBody"></tbody>
+<div style="grid-column:1/-1">
+<h3>Daftar Sampah yang Ditimbang</h3>
+<table>
+<thead>
+<tr>
+<th>Jenis Sampah</th>
+<th>Berat</th>
+<th>Harga/kg</th>
+<th>Nilai</th>
+<th>Aksi</th>
+</tr>
+</thead>
+<tbody id="weighCartBody"></tbody>
 </table>
 
 <p>Total Nilai: <strong id="weighCartTotal">Rp0</strong></p>
+</div>
 
-  </div><button type="submit">Simpan Semua Penimbangan</button>
+<button type="submit">Simpan Semua Penimbangan</button>
 
 </form>
           <p id="weighMessage" class="message"></p>
@@ -497,4 +519,4 @@
 </script>
 
 </body>
-  </html>
+      </html>
