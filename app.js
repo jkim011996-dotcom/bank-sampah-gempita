@@ -1229,7 +1229,264 @@ window.hapusGlobal=async function(id){
   alert('Rekap Global Sampah berhasil dihapus.');
   await loadGlobalHistory();
 };
+// =====================================
+// UNDUH EXCEL PENIMBANGAN
+// =====================================
 
+async function downloadWeighingsExcel(){
+
+if(typeof XLSX === 'undefined'){
+alert('Fitur Excel belum berhasil dimuat. Periksa koneksi internet.');
+return;
+}
+
+msg('weighMessage','Menyiapkan file Excel...');
+
+const {data,error}=await sb
+.from('penimbangan')
+.select('id,anggota_id,jenis_sampah_id,berat_kg,harga_per_kg,total,tanggal')
+.order('tanggal',{ascending:false});
+
+if(error){
+msg('weighMessage','Gagal mengambil data: '+error.message,true);
+return;
+}
+
+const rows=data||[];
+
+if(rows.length===0){
+msg('weighMessage','Belum ada data penimbangan untuk diunduh.',true);
+return;
+}
+
+const {data:anggota,error:errAnggota}=await sb
+.from('anggota')
+.select('id,kode_anggota,nama');
+
+if(errAnggota){
+msg('weighMessage',errAnggota.message,true);
+return;
+}
+
+const {data:jenis,error:errJenis}=await sb
+.from('jenis_sampah')
+.select('id,nama');
+
+if(errJenis){
+msg('weighMessage',errJenis.message,true);
+return;
+}
+
+const daftarAnggota=anggota||[];
+const daftarJenis=jenis||[];
+
+const isiExcel=[
+['REKAP PENIMBANGAN BANK SAMPAH GEMPITA'],
+['RW 07 Gemblakan Bawah'],
+[],
+[
+'No',
+'Tanggal',
+'Kode Anggota',
+'Nama Anggota',
+'Jenis Sampah',
+'Berat (Kg)',
+'Harga per Kg',
+'Nilai Tabungan'
+],
+...rows.map((r,i)=>{
+
+  const m=daftarAnggota.find(a=>String(a.id)===String(r.anggota_id));
+  const w=daftarJenis.find(x=>String(x.id)===String(r.jenis_sampah_id));
+
+  return [
+    i+1,
+    r.tanggal ? new Date(r.tanggal) : '',
+    m?.kode_anggota||'',
+    m?.nama||'',
+    w?.nama||'',
+    Number(r.berat_kg||0),
+    Number(r.harga_per_kg||0),
+    Number(r.total ?? (Number(r.berat_kg||0)*Number(r.harga_per_kg||0)))
+  ];
+})
+
+];
+
+const sheet=XLSX.utils.aoa_to_sheet(isiExcel);
+sheet['!cols']=[
+{wch:6},{wch:22},{wch:16},
+{wch:25},{wch:22},{wch:14},
+{wch:18},{wch:20}
+];
+
+const workbook=XLSX.utils.book_new();
+
+XLSX.utils.book_append_sheet(workbook,sheet,'Penimbangan');
+
+XLSX.writeFile(
+workbook,
+'Rekap_Penimbangan_GEMPITA.xlsx'
+);
+
+msg('weighMessage','File Excel penimbangan berhasil dibuat.');
+}
+
+// =====================================
+// UNDUH EXCEL GLOBAL SAMPAH
+// =====================================
+
+async function downloadGlobalExcel(){
+
+if(typeof XLSX === 'undefined'){
+alert('Fitur Excel belum berhasil dimuat. Periksa koneksi internet.');
+return;
+}
+
+msg('globalMessage','Menyiapkan file Excel Global Sampah...');
+
+const {data,error}=await sb
+.from('global_sampah')
+.select('id,bulan,tahun,tanggal,catatan,detail_global_sampah(id,nama_jenis,berat_kg,harga_per_kg)')
+.order('tahun',{ascending:false})
+.order('bulan',{ascending:false});
+
+if(error){
+msg('globalMessage','Gagal mengambil data: '+error.message,true);
+return;
+}
+
+const rows=data||[];
+
+if(rows.length===0){
+msg('globalMessage','Belum ada rekap Global Sampah untuk diunduh.',true);
+return;
+}
+
+const ringkasan=[
+['REKAP GLOBAL SAMPAH BANK SAMPAH GEMPITA'],
+['RW 07 Gemblakan Bawah'],
+[],
+[
+'No',
+'Periode',
+'Tanggal',
+'Jumlah Jenis',
+'Total Berat (Kg)',
+'Total Penjualan',
+'Catatan'
+]
+];
+
+const rincian=[
+['RINCIAN GLOBAL SAMPAH BANK SAMPAH GEMPITA'],
+['RW 07 Gemblakan Bawah'],
+[],
+[
+'No',
+'Periode',
+'Tanggal',
+'Jenis Sampah',
+'Berat (Kg)',
+'Harga per Kg',
+'Nilai Penjualan'
+]
+];
+
+let nomorRincian=1;
+
+rows.forEach((r,i)=>{
+
+const periode=(namaBulanGlobal[r.bulan-1]||'')+' '+r.tahun;
+
+const detail=r.detail_global_sampah||[];
+
+const totalBerat=detail.reduce(
+  (sum,item)=>sum+Number(item.berat_kg||0),0
+);
+
+const totalNilai=detail.reduce(
+  (sum,item)=>sum+
+    Number(item.berat_kg||0)*Number(item.harga_per_kg||0),0
+);
+
+ringkasan.push([
+  i+1,
+  periode,
+  r.tanggal||'',
+  detail.length,
+  totalBerat,
+  totalNilai,
+  r.catatan||''
+]);
+
+detail.forEach(item=>{
+
+  const berat=Number(item.berat_kg||0);
+  const harga=Number(item.harga_per_kg||0);
+
+  rincian.push([
+    nomorRincian++,
+    periode,
+    r.tanggal||'',
+    item.nama_jenis,
+    berat,
+    harga,
+    berat*harga
+  ]);
+
+});
+
+});
+
+const sheetRingkasan=XLSX.utils.aoa_to_sheet(ringkasan);
+const sheetRincian=XLSX.utils.aoa_to_sheet(rincian);
+
+sheetRingkasan['!cols']=[
+{wch:6},{wch:20},{wch:16},
+{wch:16},{wch:20},{wch:22},{wch:30}
+];
+
+sheetRincian['!cols']=[
+{wch:6},{wch:20},{wch:16},
+{wch:25},{wch:16},{wch:18},{wch:22}
+];
+
+const workbook=XLSX.utils.book_new();
+
+XLSX.utils.book_append_sheet(
+workbook,
+sheetRingkasan,
+'Ringkasan Bulanan'
+);
+
+XLSX.utils.book_append_sheet(
+workbook,
+sheetRincian,
+'Rincian Jenis Sampah'
+);
+
+XLSX.writeFile(
+workbook,
+'Rekap_Global_Sampah_GEMPITA.xlsx'
+);
+
+msg('globalMessage','File Excel Global Sampah berhasil dibuat.');
+}
+
+// =====================================
+// TOMBOL UNDUH EXCEL
+// =====================================
+
+$('downloadWeighingsBtn').addEventListener(
+'click',
+downloadWeighingsExcel
+);
+
+$('downloadGlobalBtn').addEventListener(
+'click',
+downloadGlobalExcel
+);
 // Nilai awal formulir
 resetGlobalForm();
   init();
