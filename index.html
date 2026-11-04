@@ -176,7 +176,29 @@
 </form>
           <p id="weighMessage" class="message"></p>
         </div>
-        <div class="card"><h2>Penimbangan terbaru</h2><div class="tablewrap"><table><thead><tr><th>Tanggal</th><th>Anggota</th><th>Jenis</th><th>Berat</th><th>Nilai</th><th>Aksi</th></tr></thead><tbody id="weighingsBody"></tbody></table></div></div>
+        <div class="card">
+  <h2>Penimbangan terbaru</h2>
+
+  <button id="downloadWeighingsBtn" type="button">
+    Unduh Excel Penimbangan
+  </button>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Tanggal</th>
+          <th>Anggota</th>
+          <th>Jenis</th>
+          <th>Berat</th>
+          <th>Nilai</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="weighingsBody"></tbody>
+    </table>
+  </div>
+</div>
       </section>
 <section id="tab-tabungan" class="tabpage hidden">
   <div class="card">
@@ -417,6 +439,9 @@
 
   <div class="card">
     <h2>Riwayat Global Sampah</h2>
+    <button id="downloadGlobalBtn" type="button">
+  Unduh Excel Global Sampah
+</button>
 
     <div class="tablewrap">
       <table>
@@ -472,4 +497,4 @@
 </script>
 
 </body>
-        </html>
+  </html>
