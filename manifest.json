@@ -1,6 +1,7 @@
 {
   "name": "Bank Sampah GEMPITA",
   "short_name": "GEMPITA",
+  "description": "Aplikasi pencatatan Bank Sampah GEMPITA",
   "start_url": "/bank-sampah-gempita/",
   "scope": "/bank-sampah-gempita/",
   "display": "standalone",
@@ -10,4 +11,14 @@
     {
       "src": "icon-192.png",
       "sizes": "192x192",
-      "type": "image
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
