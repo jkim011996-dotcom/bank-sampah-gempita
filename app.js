@@ -80,22 +80,55 @@ if(name==='global-sampah'){
   document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
 
  function renderWeighMembers(keyword=''){
+  const box = $('weighMemberResults');
   const cari = keyword.toLowerCase().trim();
 
+  if(!cari){
+    box.innerHTML = '<p class="muted">Ketik nama anggota untuk mencari.</p>';
+    return;
+  }
+
   const hasil = members.filter(m =>
-    (m.nama || '').toLowerCase().includes(cari)
+    (m.nama || '').toLowerCase().includes(cari) ||
+    (m.kode_anggota || '').toLowerCase().includes(cari)
   );
 
-  $('weighMember').innerHTML =
-    '<option value="">Pilih anggota</option>' +
-    hasil.map(m =>
-      `<option value="${m.id}">${esc(m.nama)}</option>`
-    ).join('');
+  if(!hasil.length){
+    box.innerHTML = '<p class="muted">Anggota tidak ditemukan.</p>';
+    return;
+  }
+
+  box.innerHTML = hasil.map(m => `
+    <button type="button"
+      class="search-result-btn"
+      data-member-id="${m.id}"
+      style="display:block;width:100%;text-align:left;margin:5px 0;padding:10px">
+      ${esc(m.nama)} — ${esc(m.kode_anggota || '')}
+    </button>
+  `).join('');
 }
 
-$('searchWeighMember').addEventListener('input', 
-function(){
+$('searchWeighMember').addEventListener('input',function(){
+  $('weighMember').value = '';
+  $('selectedWeighMember').textContent = 'Belum dipilih';
   renderWeighMembers(this.value);
+});
+
+$('weighMemberResults').addEventListener('click',function(e){
+  const button = e.target.closest('[data-member-id]');
+  if(!button) return;
+
+  const member = members.find(m =>
+    String(m.id) === button.dataset.memberId
+  );
+
+  if(!member) return;
+
+  $('weighMember').value = member.id;
+  $('searchWeighMember').value = member.nama;
+  $('selectedWeighMember').textContent = member.nama;
+  $('weighMemberResults').innerHTML =
+    '<p class="muted">Anggota berhasil dipilih.</p>';
 });
 async function loadMembers(){
   const {data,error}=await sb.from('anggota').select('id,kode_anggota,nama,alamat,no_hp,saldo').order('kode_anggota');
@@ -424,30 +457,58 @@ async function loadMonthlySavings(){
     e.target.reset();msg('memberMessage','Anggota berhasil disimpan.');await loadMembers();await loadDashboard();
   });
 function renderWeighWastes(keyword=''){
+  const box = $('weighWasteResults');
   const cari = keyword.toLowerCase().trim();
 
+  if(!cari){
+    box.innerHTML = '<p class="muted">Ketik nama jenis sampah untuk mencari.</p>';
+    return;
+  }
+
   const hasil = wastes.filter(w =>
     w.aktif && (w.nama || '').toLowerCase().includes(cari)
   );
 
-  $('weighWaste').innerHTML =
-    '<option value="">Pilih jenis sampah</option>' +
-    hasil.map(w =>
-      `<option value="${w.id}" data-price="${w.harga_per_kg}">${esc(w.nama)} — ${money(w.harga_per_kg)}/kg</option>`
-    ).join('');
+  if(!hasil.length){
+    box.innerHTML = '<p class="muted">Jenis sampah tidak ditemukan.</p>';
+    return;
+  }
+
+  box.innerHTML = hasil.map(w => `
+    <button type="button"
+      data-waste-id="${w.id}"
+      style="display:block;width:100%;text-align:left;margin:5px 0;padding:10px">
+      ${esc(w.nama)} — ${money(w.harga_per_kg)}/kg
+    </button>
+  `).join('');
 }
 
-$('searchWeighWaste').addEventListener('input', function(){
-  const cari = this.value.toLowerCase().trim();
+$('searchWeighWaste').addEventListener('input',function(){
+  $('weighWaste').value = '';
+  $('selectedWeighWaste').textContent = 'Belum dipilih';
+  $('weighEstimate').value = '';
+  renderWeighWastes(this.value);
+});
 
-  const hasil = wastes.filter(w =>
-    w.aktif && (w.nama || '').toLowerCase().includes(cari)
+$('weighWasteResults').addEventListener('click',function(e){
+  const button = e.target.closest('[data-waste-id]');
+  if(!button) return;
+
+  const waste = wastes.find(w =>
+    String(w.id) === button.dataset.wasteId
   );
 
-  renderWeighWastes(this.value);
+  if(!waste) return;
 
-  $('weighMessage').textContent =
-    `Kata: ${this.value} | Data: ${wastes.length} | Cocok: ${hasil.length} | Dropdown: ${$('weighWaste').options.length - 1}`;
+  $('weighWaste').value = waste.id;
+  $('searchWeighWaste').value = waste.nama;
+  $('selectedWeighWaste').textContent =
+    waste.nama + ' — ' + money(waste.harga_per_kg) + '/kg';
+
+  $('weighWasteResults').innerHTML =
+    '<p class="muted">Jenis sampah berhasil dipilih.</p>';
+
+  updateEstimate();
 });
   async function loadWastes(){
     const {data,error}=await sb.from('jenis_sampah').select('id,nama,harga_per_kg,aktif').order('nama');
@@ -645,10 +706,17 @@ $('globalPriceForm').addEventListener('submit',async e=>{
 });
 
   function updateEstimate(){
-    const opt=$('weighWaste').selectedOptions[0], weight=Number($('weighWeight').value||0), price=Number(opt?.dataset.price||0);
-    $('weighEstimate').value=money(weight*price);
-  }
-  $('weighWaste').addEventListener('change',updateEstimate);$('weighWeight').addEventListener('input',updateEstimate);
+  const waste = wastes.find(w =>
+    String(w.id) === String($('weighWaste').value)
+  );
+
+  const weight = Number($('weighWeight').value || 0);
+  const price = Number(waste?.harga_per_kg || 0);
+
+  $('weighEstimate').value = money(weight * price);
+}
+
+$('weighWeight').addEventListener('input', updateEstimate);
   let weighCart = [];
 
 function renderWeighCart(){
@@ -699,15 +767,17 @@ if(error){
 weighCart = [];
 e.target.reset();
 renderWeighCart();
-renderWeighMembers();
-renderWeighWastes();
+
+$('selectedWeighMember').textContent='Belum dipilih';
+$('selectedWeighWaste').textContent='Belum dipilih';
+
+renderWeighMembers('');
+renderWeighWastes('');
+
 $('weighEstimate').value='';
 
 msg('weighMessage','Semua penimbangan berhasil disimpan. Saldo anggota diperbarui otomatis.');
 
-await loadMembers();
-await loadWeighings();
-await loadDashboard();
 
 });
 
@@ -740,8 +810,11 @@ $('addWeighItem').addEventListener('click',()=>{
   });
 
   $('weighWaste').value='';
-  $('weighWeight').value='';
-  $('weighEstimate').value='';
+$('searchWeighWaste').value='';
+$('selectedWeighWaste').textContent='Belum dipilih';
+$('weighWeight').value='';
+$('weighEstimate').value='';
+renderWeighWastes('');
 
   renderWeighCart();
 
