@@ -1056,7 +1056,7 @@ $('globalTanggal').value = todayLocal;
 
 async function loadGlobalHistory(){
 const body=$('globalHistoryBody');
-body.innerHTML='<tr><td colspan="6">Memuat data...</td></tr>';
+body.innerHTML='<tr><td colspan="7">Memuat data...</td></tr>';
 
 const {data,error}=await sb
 .from('global_sampah')
@@ -1073,7 +1073,7 @@ return;
 const rows=data||[];
 
 if(rows.length===0){
-body.innerHTML='<tr><td colspan="6">Belum ada rekap Global Sampah.</td></tr>';
+body.innerHTML='<tr><td colspan="7">Belum ada rekap Global Sampah.</td></tr>';
 return;
 }
 
@@ -1089,6 +1089,13 @@ const totalNilai=detail.reduce(
     (Number(item.berat_kg||0)*Number(item.harga_per_kg||0)),0
 );
 
+const rincian=detail.map(item=>`
+  <div style="margin-bottom:4px">
+    ${esc(item.nama_jenis)}:
+    <strong>${Number(item.berat_kg||0).toLocaleString('id-ID')} kg</strong>
+  </div>
+`).join('') || '—';
+
 const tanggal=r.tanggal
   ? new Date(r.tanggal+'T00:00:00').toLocaleDateString('id-ID')
   : '—';
@@ -1097,6 +1104,7 @@ return `
   <tr>
     <td>${namaBulanGlobal[r.bulan-1]} ${r.tahun}</td>
     <td>${tanggal}</td>
+    <td>${rincian}</td>
     <td>${detail.length}</td>
     <td>${totalBerat.toLocaleString('id-ID')} kg</td>
     <td>${money(totalNilai)}</td>
