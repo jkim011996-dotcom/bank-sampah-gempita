@@ -22,7 +22,13 @@ const configured = cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY &&
     if(name==='anggota') loadMembers();
     if(name==='harga') loadWastes();
     if(name==='harga-global') loadGlobalPrices();
-    if(name==='timbang'){ loadMembers(); loadWastes(); loadWeighings(); }
+    if(name==='timbang'){
+  (async()=>{
+    await loadMembers();
+    await loadWastes();
+    await loadWeighings();
+  })();
+}
     if(name==='tabungan') loadSavings();
     if(name==='sampah-anggota'){
   (async()=>{
@@ -778,9 +784,8 @@ $('weighEstimate').value='';
 
 msg('weighMessage','Semua penimbangan berhasil disimpan. Saldo anggota diperbarui otomatis.');
 
-
+await loadWeighings();
 });
-
 $('addWeighItem').addEventListener('click',()=>{
 
   if(!Number($('weighMember').value)){
@@ -820,31 +825,82 @@ renderWeighWastes('');
 
   msg('weighMessage','Jenis sampah berhasil ditambahkan ke daftar.');
 });
-
+// Tombol hapus item dari daftar penimbangan
 $('weighCartBody').addEventListener('click',e=>{
-const button = e.target.closest('[data-remove-weigh]');
-if(!button) return;
+  const button = e.target.closest('[data-remove-weigh]');
+  if(!button) return;
 
-weighCart.splice(Number(button.dataset.removeWeigh),1);
-renderWeighCart();
-
+  weighCart.splice(Number(button.dataset.removeWeigh),1);
+  renderWeighCart();
 });
-  async function loadWeighings(){
-    const {data,error}=await sb.from('penimbangan').select('id,anggota_id,jenis_sampah_id,berat_kg,total,tanggal').order('tanggal',{ascending:false}).limit(50);
-    if(error){msg('weighMessage',error.message,true);return;}
-    weighings=data||[];
-   $('weighingsBody').innerHTML=weighings.map(r=>`<tr>
-<td>${dateFmt(r.tanggal)}</td>
-<td>${esc(members.find(m=>m.id===r.anggota_id)?.nama||'—')}</td>
-<td>${esc(wastes.find(w=>w.id===r.jenis_sampah_id)?.nama||'—')}</td>
-<td>${Number(r.berat_kg).toLocaleString('id-ID')} kg</td>
-<td>${money(r.total)}</td>
-<td>${role()==='admin'?`<button class="btn-danger" onclick="hapusPenimbangan('${r.id}')">Hapus</button>`:'-'}</td>
-</tr>`).join('');
-    $('statTimbang').textContent=weighings.length;
-    
-    await loadDashboard();
+
+
+// Memuat seluruh riwayat penimbangan
+async function loadWeighings(){
+
+  const body = $('weighingsBody');
+
+  body.innerHTML =
+    '<tr><td colspan="6">Memuat riwayat penimbangan...</td></tr>';
+
+  let semuaData = [];
+  let mulai = 0;
+  const jumlahPerHalaman = 50;
+
+  while(true){
+
+    const {data,error} = await sb
+      .from('penimbangan')
+      .select('id,anggota_id,jenis_sampah_id,berat_kg,total,tanggal')
+      .order('tanggal',{ascending:false})
+      .order('id',{ascending:false})
+      .range(mulai, mulai + jumlahPerHalaman - 1);
+
+    if(error){
+      msg('weighMessage',error.message,true);
+      body.innerHTML = '';
+      return;
+    }
+
+    semuaData = semuaData.concat(data || []);
+
+    if(!data || data.length < jumlahPerHalaman){
+      break;
+    }
+
+    mulai += jumlahPerHalaman;
   }
+
+  weighings = semuaData;
+
+  if(weighings.length === 0){
+
+    body.innerHTML =
+      '<tr><td colspan="6">Belum ada data penimbangan.</td></tr>';
+
+  }else{
+
+    body.innerHTML = weighings.map(r=>`
+      <tr>
+        <td>${dateFmt(r.tanggal)}</td>
+        <td>${esc(members.find(m=>String(m.id)===String(r.anggota_id))?.nama||'—')}</td>
+        <td>${esc(wastes.find(w=>String(w.id)===String(r.jenis_sampah_id))?.nama||'—')}</td>
+        <td>${Number(r.berat_kg).toLocaleString('id-ID')} kg</td>
+        <td>${money(r.total)}</td>
+        <td>
+          ${role()==='admin'
+            ? `<button class="btn-danger" onclick="hapusPenimbangan('${r.id}')">Hapus</button>`
+            : '-'}
+        </td>
+      </tr>
+    `).join('');
+
+  }
+
+  $('statTimbang').textContent = weighings.length;
+
+  await loadDashboard();
+}
   window.hapusPenimbangan = async function(id){
     if(role() !== 'admin'){
       alert('Hanya Admin yang boleh menghapus.');
